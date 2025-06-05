@@ -16,10 +16,11 @@ using namespace std;
 void LoadCameraParameter(string camera_patameter_path);
 void LoadCalibrateMatrix(string matrix_path);
 void ReadRobotPoses(string poses_path);
-void EulerAngleToRotateMatrix();
+cv::Mat EulerAngleToRotateMatrix(const cv::Mat& eulerAngle, const string& seq);
 void RotateMatrixToEulerAngle();
-void R_T2HomogeneousMatrix();
-void HomogeneousMatrix2R_T();
+
+cv::Mat R_T2HomogeneousMatrix(const cv::Mat& R, const cv::Mat& T);
+void HomogeneousMatrix2R_T(cv::Mat& HomoMtr, cv::Mat& R, cv::Mat& T);
 void Pose2HomogenousMatrix();
 void HomogeneousMatrix2Pose();
 void DetectChessBoard();
