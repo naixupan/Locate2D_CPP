@@ -4,6 +4,10 @@
 #include <math.h>
 #include <cmath>
 #include <vector>
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <cctype> 
 
 using namespace std;
 
@@ -15,9 +19,21 @@ using namespace std;
 @camera_patameter(Mat*)，指针
 */
 
+struct RobotPose {
+	std::string identifier = " ";  // 新增字段存储前缀标识
+	double x = 0, y = 0, z = 0;
+	double rx = 0, ry = 0, rz = 0;
+};
+
+struct EulerAngles {
+	double roll;
+	double pitch;
+	double yaw;
+};
+
 void LoadCameraParameter(string camera_patameter_path);
 void LoadCalibrateMatrix(string matrix_path);
-void ReadRobotPoses(string poses_path);
+void ReadRobotPoses(string poses_path, cv::Mat& poses_Mat);
 cv::Mat EulerAngleToRotateMatrix(const cv::Mat& eulerAngle, const string& seq);
 cv::Mat RotateMatrixToEulerAngle(const cv::Mat& R_Matrix);
 
