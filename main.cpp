@@ -164,13 +164,14 @@ int main()
     std::vector<cv::Mat> Homo_gripper2baseVec;
     std::vector<cv::Mat> Homo_mark2cameraVec;
     std::vector<cv::Mat> Homo_mark2baseVec;
-    cv::Mat Homo_gripper2base, Homo_mark2camera, Homo_mark2base;
-    cv::Mat tempHomoMat;
-    cv::Mat outputPose;
+
     std::vector<cv::Mat> outputPoses;
 
     for (int i = 0; i < outputMat.rows; ++i)
     {
+        cv::Mat Homo_gripper2base, Homo_mark2camera, Homo_mark2base;
+        cv::Mat tempHomoMat;
+        cv::Mat outputPose;
 
         Homo_gripper2base = R_T2HomogeneousMatrix(R_gripper2base[i], T_gripper2base[i]);
         Homo_mark2camera = R_T2HomogeneousMatrix(R_mark2camera[i], T_mark2camera[i]);
@@ -182,9 +183,9 @@ int main()
         //std::cout << "Mark点位姿[" << i + 1 << "]矩阵：\n" << Homo_mark2base << std::endl;
         outputPose = HomogeneousMatrix2Pose(Homo_mark2base);
         outputPoses.push_back(outputPose);
-        std::cout << "Mark点在机械臂基坐标系下坐标：" << "\nX:" << outputMat.at<double>(0, 0) << "  Y:" << outputMat.at<double>(0, 1) << " Z:"
-            << outputMat.at<double>(0, 2) << " Rx:" << outputMat.at<double>(0, 3) << " Ry:" << outputMat.at<double>(0, 4) << " Rz:"
-            << outputMat.at<double>(0, 5) << std::endl;
+        std::cout << "Mark点在机械臂基坐标系下坐标：" << "\nX:" << outputPose.at<double>(0, 0) << "  Y:" << outputPose.at<double>(0, 1) << " Z:"
+            << outputPose.at<double>(0, 2) << " Rx:" << outputPose.at<double>(0, 3) << " Ry:" << outputPose.at<double>(0, 4) << " Rz:"
+            << outputPose.at<double>(0, 5) << std::endl;
     }
     //for (int i = 0; i < outputMat.rows; ++i)
     //{

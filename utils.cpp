@@ -179,6 +179,8 @@ cv::Mat HomogeneousMatrix2Pose(cv::Mat& HmgMatrix)
 
 }
 
+//¶ÁÈ¡»úÐµ±Û×ø±ê
+
 void ReadRobotPoses(string poses_path, cv::Mat& poses_Mat)
 {
 
