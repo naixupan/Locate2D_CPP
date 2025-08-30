@@ -6,36 +6,17 @@
 #include <string>
 #include <cctype> // for std::isdigit
 
-
-
-
-
-int main()
+void demo_calibrate()
 {
-    /*
-    手眼标定需要的数据：
-    1、机械臂末端位姿旋转矩阵——R_gripper2base;
-    2、机械臂末端位姿平移向量——T_gripper2base;
-    3、标定板位姿旋转矩阵——R_mark2camera;
-    4、标定板位姿平移向量——T_mark2camera。
-
-    */
-    
     std::vector<cv::Mat>R_gripper2base, T_gripper2base;
     std::vector<cv::Mat>R_mark2camera, T_mark2camera;
-
-
     std::cout.precision(12);
-
-    //1、读取机械臂位姿文件，将机械臂位姿使用Mat存储
-    
+    //1。Read robot poses
     cv::Mat outputMat;
-    std::string pose_path = "D:/GitHubCode/Locate2D_CPP/images/Calibrate/CalibrateImages20250626_1/poses.txt";
+    std::string pose_path = "D:/CPlusPlusCode/Locate2D_CPP/images/Calibrate/CalibrateImages20250626_1/poses.txt";
     ReadRobotPoses(pose_path, outputMat);
-
     std::cout << outputMat << std::endl;
-
-    //2、将欧拉角转换为旋转矩阵;同时将X,Y,Z坐标转换为平移向量
+    //2.Transfrom poses to matrix
     cv::Mat rotate_mat;
     for (int i = 0; i < outputMat.rows; ++i)
     {
@@ -54,22 +35,20 @@ int main()
         R_gripper2base.push_back(rotate_mat);
         T_gripper2base.push_back(translation_vector);
     }
-
-    //3、读取标定板图片，检测棋盘格，获取棋盘格角点
-    std::string image_folder = "D:/GitHubCode/Locate2D_CPP/images/Calibrate/CalibrateImages20250626_1/";
-    std::string save_folder = "D:/GitHubCode/Locate2D_CPP/images/ResultImages/CalibrateImages20250626_1/";
-
+    //3.Load chess board images
+    std::string image_folder = "D:/CPlusPlusCode/Locate2D_CPP/images/Calibrate/CalibrateImages20250626_1/";
+    std::string save_folder = "D:/CPlusPlusCode/Locate2D_CPP/images/ResultImages/CalibrateImages20250626_1/";
     cv::Size patternsize(19, 17);
     double squareSize = 0.0015;
     std::vector<std::vector<cv::Point2f>> imagePoints;
     cv::Size image_size;
     for (int i = 0; i < outputMat.rows; ++i)
     {
-        std::string image_path = image_folder + "image" + std::to_string(i+1) + ".bmp";
-        std::string save_path = save_folder + "image" + std::to_string(i+1) + ".png";
+        std::string image_path = image_folder + "image" + std::to_string(i + 1) + ".bmp";
+        std::string save_path = save_folder + "image" + std::to_string(i + 1) + ".png";
 
         cv::Mat image = cv::imread(image_path, cv::IMREAD_COLOR);
-        if(image.empty()) {
+        if (image.empty()) {
             std::cerr << "无法读取图像" << std::endl;
             return -1;
         }
@@ -80,7 +59,7 @@ int main()
         bool patternfound = cv::findChessboardCorners(gray, patternsize, corners, cv::CALIB_CB_ADAPTIVE_THRESH + cv::CALIB_CB_NORMALIZE_IMAGE
             + cv::CALIB_CB_FAST_CHECK);
         if (patternfound)
-             (gray, corners, cv::Size(11, 11), cv::Size(-1, -1),
+            cv::cornerSubPix(gray, corners, cv::Size(11, 11), cv::Size(-1, -1),
                 cv::TermCriteria(cv::TermCriteria::EPS + cv::TermCriteria::MAX_ITER, 30, 0.1));
         imagePoints.push_back(corners);
         cv::drawChessboardCorners(image, patternsize, cv::Mat(corners), patternfound);
@@ -88,20 +67,16 @@ int main()
         std::cout << "图像：" << image_path << "   已保存：" << save_path << std::endl;
         image_size = gray.size();
     }
-
     std::cout << "图像尺寸：" << image_size << std::endl;
-    
-    //4、分析棋盘格角点，计算相机内参
+    //4.Analisy board images
     cv::Mat cameraMatrix = cv::Mat::eye(3, 3, CV_64F);
     cv::Mat distCoeffs = cv::Mat::zeros(1, 8, CV_64F);
     std::vector<cv::Mat> rvecs, tvecs;
     std::vector<cv::Point3f> obj;
     std::vector<std::vector<cv::Point3f>>objectPoints;
     //int flags = cv::CALIB_ZERO_TANGENT_DIST | cv::CALIB_FIX_K3;
-    //高精度模型
     int flags = cv::CALIB_RATIONAL_MODEL;
-
-        //创建单幅图像对象点
+    //Create one object point
     for (int i = 0; i < patternsize.height; ++i)
     {
         for (int j = 0; j < patternsize.width; ++j)
@@ -109,32 +84,26 @@ int main()
             obj.push_back(cv::Point3f(j * squareSize, i * squareSize, 0));
         }
     }
-        //创建多幅图像对象点
+    //create many object point
     for (int i = 0; i < outputMat.rows; ++i)
     {
         objectPoints.push_back(obj);
     }
-
     double rms = cv::calibrateCamera(objectPoints, imagePoints, image_size, cameraMatrix, distCoeffs, rvecs, tvecs, flags);
-
     std::cout << "标定误差 (RMS): " << rms << " 像素" << std::endl;
     std::cout << "相机内参矩阵:\n" << cameraMatrix << std::endl;
     std::cout << "畸变系数: " << distCoeffs.t() << std::endl;
-
     cv::FileStorage fs("./Parameter/camera_params.yaml", cv::FileStorage::WRITE);
     fs << "camera_matrix" << cameraMatrix;
     fs << "distortion_coefficients" << distCoeffs;
     fs << "image_size" << image_size;
     fs << "reprojection_error" << rms;
     fs.release();
-    //5、计算棋盘格位姿
-    
+    //5.Compute board pose
     for (int i = 0; i < outputMat.rows; ++i)
     {
-        //std::cout << rvecs[i] << "\n" << tvecs[i] << std::endl;
         std::cout << "标定板->相机 旋转矩阵:" << rvecs[i] << std::endl;
         std::cout << "             平移向量:" << tvecs[i] << std::endl;
-
         cv::Mat rotationMatrix;
         cv::Mat translateMatrix = (cv::Mat_<double>(3, 1) <<
             tvecs[i].at<double>(0, 1), tvecs[i].at<double>(0, 2), tvecs[i].at<double>(0, 3));
@@ -142,37 +111,26 @@ int main()
         R_mark2camera.push_back(rotationMatrix);
         T_mark2camera.push_back(translateMatrix);
     }
-
-    //6、手眼标定
+    //6.Calibrate
     cv::Mat R_camera2gripper, T_camera2gripper;
     cv::Mat RT_camera2gripper;
     cv::calibrateHandEye(R_gripper2base, T_gripper2base, R_mark2camera, T_mark2camera, R_camera2gripper, T_camera2gripper, cv::CALIB_HAND_EYE_TSAI);
     std::cout << "标定结果：" << std::endl;
     std::cout << "旋转矩阵：" << R_camera2gripper << std::endl;
     std::cout << "平移向量：" << T_camera2gripper << std::endl;
-
     RT_camera2gripper = R_T2HomogeneousMatrix(R_camera2gripper, T_camera2gripper);
     std::cout << "齐次矩阵：\n" << RT_camera2gripper << std::endl;
-
-
-    //7、手眼标定测试
-    //  1）使用手眼标定计算出的齐次矩阵与标定板位姿，机械臂位姿进行矩阵计算，算出标定板在机械臂基坐标系下的位姿；
-    //  2）将标定板在机械臂基坐标系下的位姿矩阵转化为坐标形式并打印。
-
+    //7.Calibrate test
     std::cout << "########### 手眼标定测试 ###########" << std::endl;
-
     std::vector<cv::Mat> Homo_gripper2baseVec;
     std::vector<cv::Mat> Homo_mark2cameraVec;
     std::vector<cv::Mat> Homo_mark2baseVec;
-
     std::vector<cv::Mat> outputPoses;
-
     for (int i = 0; i < outputMat.rows; ++i)
     {
         cv::Mat Homo_gripper2base, Homo_mark2camera, Homo_mark2base;
         cv::Mat tempHomoMat;
         cv::Mat outputPose;
-
         Homo_gripper2base = R_T2HomogeneousMatrix(R_gripper2base[i], T_gripper2base[i]);
         Homo_mark2camera = R_T2HomogeneousMatrix(R_mark2camera[i], T_mark2camera[i]);
         Homo_gripper2baseVec.push_back(Homo_gripper2base);
@@ -180,22 +138,19 @@ int main()
         cv::gemm(Homo_gripper2base, RT_camera2gripper, 1.0, cv::noArray(), 0, tempHomoMat);
         cv::gemm(tempHomoMat, Homo_mark2camera, 1.0, cv::noArray(), 0, Homo_mark2base);
         Homo_mark2baseVec.push_back(Homo_mark2base);
-        //std::cout << "Mark点位姿[" << i + 1 << "]矩阵：\n" << Homo_mark2base << std::endl;
         outputPose = HomogeneousMatrix2Pose(Homo_mark2base);
         outputPoses.push_back(outputPose);
         std::cout << "Mark点在机械臂基坐标系下坐标：" << "\nX:" << outputPose.at<double>(0, 0) << "  Y:" << outputPose.at<double>(0, 1) << " Z:"
             << outputPose.at<double>(0, 2) << " Rx:" << outputPose.at<double>(0, 3) << " Ry:" << outputPose.at<double>(0, 4) << " Rz:"
             << outputPose.at<double>(0, 5) << std::endl;
     }
-    //for (int i = 0; i < outputMat.rows; ++i)
-    //{
-    //    std::cout << "标定板" << i + 1 << "在机械臂基坐标系下坐标：\n" << "X: " << outputPoses[i].at<double>(0, 0) << "  Y: " << outputPoses[i].at<double>(0, 1)
-    //        << "  Z: " << outputPoses[i].at<double>(0, 2) << "  RX: " << outputPoses[i].at<double>(0, 3) << "  RY: " << outputPoses[i].at<double>(0, 4)
-    //        << "  RZ: " << outputPoses[i].at<double>(0, 5) << std::endl;
-    //}
+}
 
 
+
+
+int main()
+{
     
-
     return 0;
 }
