@@ -24,12 +24,13 @@ class Calibrator
 {
 public:
 	Calibrator(int cali_type,std::string& robot_poses_path,std::string& image_folder_path,
-				std::string& parameter_save_path, std::string& image_save_path);
+				std::string& parameter_save_path, std::string& image_save_path, cv::Size patternsize,
+				double squareSize);
 	~Calibrator() {};
-	void calibrate_eye_in_hand();
-	void calibrate_camera();
-	void calibrate_test();
-	void compute_relative_pose_mat();
+	void CalibrateEyeInHand();
+	void CalibrateCamera(int image_number);
+	void CalibrateTest();
+	void ComputeRelativePoseMat();
 
 private:
 	std::string parameter_save_path;		// 参数保存路径
@@ -39,8 +40,25 @@ private:
 	int calibrate_type;
 	cv::Size patternsize;
 	double squareSize;
+	cv::Size image_size;
+	int pose_number;
+	//std::vector<cv::Point2f> corners;
+	std::vector<std::vector<cv::Point2f>> imagePoints;
+	//int image_number;
+	std::vector<cv::Mat> rvecs;
+	std::vector<cv::Mat> tvecs;
 
-	cv::Mat read_robot_poses();
+	cv::Mat cameraMatrix;
+	cv::Mat distCoeffs;
+
+	cv::Mat RT_camera2gripper;
+
+	std::vector<cv::Mat>R_gripper2base, T_gripper2base;
+	std::vector<cv::Mat>R_mark2camera, T_mark2camera;
+
+	//手眼标定所用相关数据
+	void ReadRobotPoses(cv::Mat& output_mat);
+	void DetectChessBoard(int image_number);
 
 
 };
