@@ -49,7 +49,7 @@ void HomogeneousMatrix2R_T(cv::Mat& HomoMtr, cv::Mat& R, cv::Mat& T)
 * @param string& seq			指定欧拉角的排列顺序，目前只有xyz
 * @return cv::Mat				返回3*3旋转矩阵
 ****************************/
-cv::Mat EulerAngleToRotateMatrix(const cv::Mat& eulerAngle, const string& seq)
+void EulerAngleToRotateMatrix(const cv::Mat& eulerAngle, const string& seq, cv::Mat rotate_matrix)
 {
 	CV_Assert(eulerAngle.rows == 1 && eulerAngle.cols == 3);	//检查欧拉角矩阵是否正确
 	eulerAngle /= (180 / CV_PI);
@@ -72,18 +72,15 @@ cv::Mat EulerAngleToRotateMatrix(const cv::Mat& eulerAngle, const string& seq)
 		rzs, rzc, 0,
 		0, 0, 1);
 	// 按照旋转顺序合成旋转矩阵
-	cv::Mat rotMat;
-	if (seq == "xyz") rotMat = Rotz * Roty * Rotx;
-	else if (seq == "zyx") rotMat = Rotx * Roty * Rotz;
-	else if (seq == "yzx") rotMat = Rotx * Rotz * Roty;
-	else if (seq == "yxz") rotMat = Rotz * Rotx * Roty;
-	else if (seq == "xzy") rotMat = Roty * Rotz * Rotx;
+	if (seq == "xyz") rotate_matrix = Rotz * Roty * Rotx;
+	else if (seq == "zyx") rotate_matrix = Rotx * Roty * Rotz;
+	else if (seq == "yzx") rotate_matrix = Rotx * Rotz * Roty;
+	else if (seq == "yxz") rotate_matrix = Rotz * Rotx * Roty;
+	else if (seq == "xzy") rotate_matrix = Roty * Rotz * Rotx;
 	else
 	{
 		cout << "欧拉角旋转顺序错误！" << endl;
 	}
-
-	return rotMat;
 }
 
 /****************************
@@ -139,26 +136,20 @@ cv::Mat RotateMatrixToEulerAngle(const cv::Mat& R_Matrix)
 * @param vector<float>& pose	机械臂位姿，x,y,z,rz,ry,rz
 * @return cv::Mat				返回4*4齐次矩阵
 ****************************/
-cv::Mat Pose2HomogenousMatrix(std::vector<float>& pose)
+void Pose2HomogenousMatrix(cv::Mat& imput_mat, cv::Mat& output_mat)
 {
-	vector<double> t_pose(pose.begin(), pose.begin() + 3);
-	//vector<float> r_pose(pose.begin() + 3, pose.end());
-	
+	//vector<double> t_pose(pose.begin(), pose.begin() + 3);
 	cv::Mat r_pose = (cv::Mat_<double>(1, 3) << pose[3], pose[4], pose[5]);
-	//for (int i = 0; i < 3; ++i)
-	//{
-	//	t_pose[i] /= 1000;
-	//}
-	cv::Mat t_pose_ = (cv::Mat_<double>(3, 1) << t_pose[0], t_pose[1], t_pose[2]);
+	cv::Mat t_pose_ = (cv::Mat_<double>(3, 1) << pose[0], pose[1], pose[2]);
 
 	cv::Mat r_matrix = EulerAngleToRotateMatrix(r_pose,"xyz");
 
-	cv::Mat HmgMat = cv::Mat::eye(4, 4, CV_64F);
+	output_mat = cv::Mat::eye(4, 4, CV_64F);
 	cv::Rect R_range(0, 0, 3, 3);
 	cv::Rect T_range(3, 0, 1, 3);
-	t_pose_.copyTo(HmgMat(T_range));
-	r_matrix.copyTo(HmgMat(R_range));
-	return HmgMat;
+	t_pose_.copyTo(output_mat(T_range));
+	r_matrix.copyTo(output_mat(R_range));
+
 }
 /****************************
 * @description					将齐次矩阵转化为机械臂位姿

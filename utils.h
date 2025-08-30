@@ -34,12 +34,12 @@ struct EulerAngles {
 void LoadCameraParameter(string camera_patameter_path);
 void LoadCalibrateMatrix(string matrix_path);
 void ReadRobotPoses(string poses_path, cv::Mat& poses_Mat);
-cv::Mat EulerAngleToRotateMatrix(const cv::Mat& eulerAngle, const string& seq);
+void EulerAngleToRotateMatrix(const cv::Mat& eulerAngle, const string& seq, cv::Mat rotate_matrix);
 cv::Mat RotateMatrixToEulerAngle(const cv::Mat& R_Matrix);
 
 cv::Mat R_T2HomogeneousMatrix(const cv::Mat& R, const cv::Mat& T);
 void HomogeneousMatrix2R_T(cv::Mat& HomoMtr, cv::Mat& R, cv::Mat& T);
-cv::Mat Pose2HomogenousMatrix(std::vector<float>& pose);
+void Pose2HomogenousMatrix(cv::Mat& imput_mat, cv::Mat& output_mat);
 cv::Mat HomogeneousMatrix2Pose(cv::Mat& HmgMatrix);
 void DetectChessBoard();
 void DetectArUcoMarks();
